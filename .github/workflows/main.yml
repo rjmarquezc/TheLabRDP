@@ -75,28 +75,7 @@ jobs:
           }
           echo "TAILSCALE_IP=$tsIP" >> $env:GITHUB_ENV
 
-      # Paso 5: Instalar Node.js y n8n
-      - name: Install Node.js and n8n
-        run: |
-          # Descargar e instalar Node.js (versión LTS)
-          $nodeUrl = "https://nodejs.org/dist/v18.17.1/node-v18.17.1-x64.msi"
-          $installerPath = "$env:TEMP\node.msi"
-          Invoke-WebRequest -Uri $nodeUrl -OutFile $installerPath
-          Start-Process msiexec.exe -ArgumentList "/i", "`"$installerPath`"", "/quiet", "/norestart" -Wait
-          Remove-Item $installerPath -Force
-          
-          # Verificar la instalación de Node.js
-          node --version
-          npm --version
-          
-          # Instalar n8n globalmente
-          npm install -g n8n
-          
-          # Iniciar n8n en segundo plano
-          Start-Process n8n
-          Write-Host "n8n is now available at http://localhost:5678"
-
-      # Paso 6: Instalar AnyDesk
+     # Paso 5: Instalar AnyDesk
       - name: Install AnyDesk
         run: |
           # Descargar el instalador de AnyDesk
@@ -115,7 +94,7 @@ jobs:
           Remove-Item $installerPath -Force
           Write-Host "AnyDesk has been installed and configured."
 
-      # Paso 7: Verificar la accesibilidad de RDP
+      # Paso 6: Verificar la accesibilidad de RDP
       - name: Verify RDP Accessibility
         run: |
           Write-Host "Tailscale IP: $env:TAILSCALE_IP"
@@ -126,7 +105,7 @@ jobs:
           }
           Write-Host "TCP connectivity successful!"
 
-      # Paso 8: Mantener la conexión activa
+      # Paso 7: Mantener la conexión activa
       - name: Maintain Connection
         run: |
           Write-Host "`n=== RDP ACCESS==="
