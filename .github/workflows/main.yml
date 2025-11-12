@@ -89,7 +89,7 @@ jobs:
           # Limpiar el instalador descargado
           Remove-Item $installerPath -Force
           Write-Host "AnyDesk has been installed and configured."
-      # Paso 6:
+      # Paso 6: Definir Chrome como Predeterminado
       - name: Set Chrome as Default Browser
         run: |
           $chromePath = "C:\Program Files\Google\Chrome\Application\chrome.exe"
