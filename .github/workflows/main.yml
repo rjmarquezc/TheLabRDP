@@ -100,7 +100,15 @@ jobs:
           } else {
             Write-Warning "Google Chrome is not installed. Skipping this step."
           }
-      # Paso 7: Verificar la accesibilidad de RDP
+          
+      # Paso 7: Cambiar tema de Windows
+      - name: Set Windows Dark Theme
+        run: |
+          Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name "AppsUseLightTheme" -Value 0 -Force
+          Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name "SystemUsesLightTheme" -Value 0 -Force
+          Write-Host "Windows Dark Theme has been applied."
+          
+      # Paso 8: Verificar la accesibilidad de RDP
       - name: Verify RDP Accessibility
         run: |
           Write-Host "Tailscale IP: $env:TAILSCALE_IP"
@@ -110,7 +118,7 @@ jobs:
             exit 1
           }
           Write-Host "TCP connectivity successful!"
-      # Paso 8: Mantener la conexión activa
+      # Paso 9: Mantener la conexión activa
       - name: Maintain Connection
         run: |
           Write-Host "`n=== RDP ACCESS==="
