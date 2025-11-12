@@ -1,15 +1,11 @@
 name: RDP
-
 on:
   workflow_dispatch:
-
 jobs:
   secure-rdp:
     runs-on: windows-latest
     timeout-minutes: 3600
-
     steps:
-
       # Paso 1: Configurar ajustes básicos de RDP
       - name: Configure Core RDP Settings
         run: |
@@ -26,8 +22,7 @@ jobs:
           
           # Reiniciar el servicio de Escritorio Remoto para aplicar cambios
           Restart-Service -Name TermService -Force
-
-# Paso 2: Crear un usuario seguro para RDP
+      # Paso 2: Crear un usuario seguro para RDP
       - name: Create RDP User with Secure Password
         run: |
           Add-Type -AssemblyName System.Security
@@ -52,8 +47,7 @@ jobs:
             Write-Error "User creation failed"
             exit 1
           }
-
-# Paso 3: Instalar Tailscale
+      # Paso 3: Instalar Tailscale
       - name: Install Tailscale
         run: |
           $tsUrl = "https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi"
@@ -61,8 +55,7 @@ jobs:
           Invoke-WebRequest -Uri $tsUrl -OutFile $installerPath
           Start-Process msiexec.exe -ArgumentList "/i", "`"$installerPath`"", "/quiet", "/norestart" -Wait
           Remove-Item $installerPath -Force
-
-# Paso 4: Establecer conexión con Tailscale
+      # Paso 4: Establecer conexión con Tailscale
       - name: Establish Tailscale Connection
         run: |
           & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey ${{ secrets.TAILSCALE_AUTH_KEY }} --hostname gh-runner-$env:GITHUB_RUN_ID
@@ -78,42 +71,7 @@ jobs:
             exit 1
           }
           echo "TAILSCALE_IP=$tsIP" >> $env:GITHUB_ENV
-
-# Paso 5: Aplicar Tema Dark
-     - name: Set Windows Dark Theme
-  run: |
-    # Configurar el tema oscuro
-    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name "AppsUseLightTheme" -Value 0 -Force
-    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name "SystemUsesLightTheme" -Value 0 -Force
-    Write-Host "Windows Dark Theme has been applied."
-# Paso 6: Cambiar Fondo de Escritorio
-     - name: Set Custom Wallpaper
-  run: |
-    # Descargar una imagen de fondo personalizada
-    $wallpaperUrl = "https://4kwallpapers.com/images/wallpapers/futuristic-dark-3840x2160-12564.jpg"
-    $wallpaperPath = "C:\Windows\Web\Wallpaper\Custom\custom-wallpaper.jpg"
-    New-Item -ItemType Directory -Path "C:\Windows\Web\Wallpaper\Custom" -Force
-    Invoke-WebRequest -Uri $wallpaperUrl -OutFile $wallpaperPath
-
-    # Configurar el fondo de pantalla en el registro
-    Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "WallPaper" -Value $wallpaperPath -Force
-    rundll32.exe user32.dll, UpdatePerUserSystemParameters
-    Write-Host "Custom wallpaper has been applied."
-
-# Paso 7: Definir Chrome como Predeterminado
-      - name: Set Chrome as Default Browser
-  run: |
-    # Establecer Chrome como navegador predeterminado mediante el registro
-    $chromePath = "C:\Program Files\Google\Chrome\Application\chrome.exe"
-    if (Test-Path $chromePath) {
-      Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\http\UserChoice" -Name "Progid" -Value "ChromeHTML" -Force
-      Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\https\UserChoice" -Name "Progid" -Value "ChromeHTML" -Force
-      Write-Host "Google Chrome has been set as the default browser."
-    } else {
-      Write-Warning "Google Chrome is not installed. Skipping this step."
-    }
-
-# Paso 8: Instalar AnyDesk
+     # Paso 5: Instalar AnyDesk
       - name: Install AnyDesk
         run: |
           # Descargar el instalador de AnyDesk
@@ -131,8 +89,7 @@ jobs:
           # Limpiar el instalador descargado
           Remove-Item $installerPath -Force
           Write-Host "AnyDesk has been installed and configured."
-
-# Paso 9: Verificar la accesibilidad de RDP
+      # Paso 6: Verificar la accesibilidad de RDP
       - name: Verify RDP Accessibility
         run: |
           Write-Host "Tailscale IP: $env:TAILSCALE_IP"
@@ -142,8 +99,7 @@ jobs:
             exit 1
           }
           Write-Host "TCP connectivity successful!"
-
-# Paso 10: Mantener la conexión activa
+      # Paso 7: Mantener la conexión activa
       - name: Maintain Connection
         run: |
           Write-Host "`n=== RDP ACCESS==="
