@@ -89,36 +89,8 @@ jobs:
           # Limpiar el instalador descargado
           Remove-Item $installerPath -Force
           Write-Host "AnyDesk has been installed and configured."
-      # Paso 6: Definir Chrome como Predeterminado
-      - name: Set Chrome as Default Browser
-        run: |
-          $chromePath = "C:\Program Files\Google\Chrome\Application\chrome.exe"
-          if (Test-Path $chromePath) {
-            Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\http\UserChoice" -Name "Progid" -Value "ChromeHTML" -Force
-            Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\https\UserChoice" -Name "Progid" -Value "ChromeHTML" -Force
-            Write-Host "Google Chrome has been set as the default browser."
-          } else {
-            Write-Warning "Google Chrome is not installed. Skipping this step."
-          }
-      # Paso 7: Cambiar tema de Windows
-      - name: Set Windows Dark Theme
-        run: |
-          Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name "AppsUseLightTheme" -Value 0 -Force
-          Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name "SystemUsesLightTheme" -Value 0 -Force
-          Write-Host "Windows Dark Theme has been applied."
-      # Paso 8: Fondo Personalizado
-      - name: Set Custom Wallpaper
-        run: |
-          $wallpaperUrl = "https://4kwallpapers.com/images/wallpapers/futuristic-dark-3840x2160-12564.jpg"
-          $wallpaperPath = "C:\Windows\Web\Wallpaper\Custom\custom-wallpaper.jpg"
-          New-Item -ItemType Directory -Path "C:\Windows\Web\Wallpaper\Custom" -Force
-          Invoke-WebRequest -Uri $wallpaperUrl -OutFile $wallpaperPath
           
-          Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "WallPaper" -Value $wallpaperPath -Force
-          rundll32.exe user32.dll, UpdatePerUserSystemParameters
-          Write-Host "Custom wallpaper has been applied."
-    
-      # Paso 9: Verificar la accesibilidad de RDP
+      # Paso 6: Verificar la accesibilidad de RDP
       - name: Verify RDP Accessibility
         run: |
           Write-Host "Tailscale IP: $env:TAILSCALE_IP"
@@ -128,7 +100,7 @@ jobs:
             exit 1
           }
           Write-Host "TCP connectivity successful!"
-      # Paso 10: Mantener la conexión activa
+      # Paso 7: Mantener la conexión activa
       - name: Maintain Connection
         run: |
           Write-Host "`n=== RDP ACCESS==="
