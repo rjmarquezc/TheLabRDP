@@ -72,6 +72,20 @@ jobs:
         run: |
           docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Start n8n using Docker
+        run: |
+          # Pull the latest n8n image
+          docker pull n8nio/n8n
+          # Run n8n in detached mode, exposing port 5678
+          docker run -d --name n8n -p 5678:5678 n8nio/n8n
+          # Verify that the container is running
+          $containerStatus = docker ps --filter "name=n8n" --format "{{.Status}}"
+          if (-not $containerStatus.Contains("Up")) {
+            Write-Error "n8n container failed to start"
+            exit 1
+          }
+          Write-Host "n8n is running successfully!"
+
       - name: Establish Tailscale Connection
         run: |
           # Bring up Tailscale with the provided auth key and set a unique hostname
@@ -108,6 +122,7 @@ jobs:
           Write-Host "Username: RDP"
           Write-Host "Password: $(echo $env:RDP_CREDS)"
           Write-Host "==================`n"
+          Write-Host "n8n is accessible at http://$env:TAILSCALE_IP:5678"
           # Keep runner active indefinitely (or until manually cancelled)
           while ($true) {
             Write-Host "[$(Get-Date)] RDP Active - Use Ctrl+C in workflow to terminate"
