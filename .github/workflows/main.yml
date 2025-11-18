@@ -6,31 +6,27 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 3600
     steps:
-      # Paso 1: Configurar ajustes básicos de RDP
       - name: Configure Core RDP Settings
         run: |
-          # Habilitar Escritorio Remoto y deshabilitar la autenticación de nivel de red (si es necesario)
+          # Enable Remote Desktop and disable Network Level Authentication(if needed)
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0 -Force
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0 -Force
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "SecurityLayer" -Value 0 -Force
-          
-          # Eliminar reglas duplicadas de firewall
+          # Remove any existing rule with the same name to avoid duplication
           netsh advfirewall firewall delete rule name="RDP-Tailscale"
-          
-          # Permitir conexiones entrantes en el puerto 3389
+          # For testing, allow any incoming connection on port 3389
           netsh advfirewall firewall add rule name="RDP-Tailscale" dir=in action=allow protocol=TCP localport=3389
-          
-          # Reiniciar el servicio de Escritorio Remoto para aplicar cambios
+          # (Optional) Restart the Remote Desktop service to ensure changes take effect
           Restart-Service -Name TermService -Force
-      # Paso 2: Crear un usuario seguro para RDP
+
       - name: Create RDP User with Secure Password
         run: |
           Add-Type -AssemblyName System.Security
           $charSet = @{
-            Upper = [char[]](65..90) # A-Z
-            Lower = [char[]](97..122) # a-z
-            Number = [char[]](48..57) # 0-9
-            Special = ([char[]](33..47) + [char[]](58..64) + [char[]](91..96) + [char[]](123..126)) # Caracteres especiales
+            Upper   = [char[]](65..90) # A-Z
+            Lower   = [char[]](97..122) # a-z
+            Number  = [char[]](48..57) # 0-9
+            Special = ([char[]](33..47) + [char[]](58..64) + [char[]](91..96) + [char[]](123..126)) # Special characters
           }
           $rawPassword = @()
           $rawPassword += $charSet.Upper | Get-Random -Count 4
@@ -47,7 +43,7 @@ jobs:
             Write-Error "User creation failed"
             exit 1
           }
-      # Paso 3: Instalar Tailscale
+
       - name: Install Tailscale
         run: |
           $tsUrl = "https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi"
@@ -55,10 +51,32 @@ jobs:
           Invoke-WebRequest -Uri $tsUrl -OutFile $installerPath
           Start-Process msiexec.exe -ArgumentList "/i", "`"$installerPath`"", "/quiet", "/norestart" -Wait
           Remove-Item $installerPath -Force
-      # Paso 4: Establecer conexión con Tailscale
+
+      - name: Install AnyDesk
+        run: |
+          $anydeskUrl = "https://download.anydesk.com/AnyDesk.exe"
+          $installerPath = "$env:TEMP\AnyDesk.exe"
+          Invoke-WebRequest -Uri $anydeskUrl -OutFile $installerPath
+          Start-Process $installerPath -ArgumentList "--install", "`"C:\Program Files (x86)\AnyDesk`"", "--silent" -Wait
+          Remove-Item $installerPath -Force
+
+      - name: Install Docker Desktop
+        run: |
+          $dockerUrl = "https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe"
+          $installerPath = "$env:TEMP\DockerDesktopInstaller.exe"
+          Invoke-WebRequest -Uri $dockerUrl -OutFile $installerPath
+          Start-Process $installerPath -ArgumentList "install", "--quiet" -Wait
+          Remove-Item $installerPath -Force
+
+      - name: Login to Docker
+        run: |
+          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+
       - name: Establish Tailscale Connection
         run: |
-          & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey ${{ secrets.TAILSCALE_AUTH_KEY }} --hostname gh-runner-$env:GITHUB_RUN_ID
+          # Bring up Tailscale with the provided auth key and set a unique hostname
+          & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey ${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=gh-runner-$env:GITHUB_RUN_ID
+          # Wait for Tailscale to assign an IP
           $tsIP = $null
           $retries = 0
           while (-not $tsIP -and $retries -lt 10) {
@@ -71,45 +89,26 @@ jobs:
             exit 1
           }
           echo "TAILSCALE_IP=$tsIP" >> $env:GITHUB_ENV
-     # Paso 5: Instalar AnyDesk
-      - name: Install AnyDesk
-        run: |
-          # Descargar el instalador de AnyDesk
-          $anydeskUrl = "https://download.anydesk.com/AnyDesk.exe"
-          $installerPath = "$env:TEMP\AnyDeskInstaller.exe"
-          Invoke-WebRequest -Uri $anydeskUrl -OutFile $installerPath
-          
-          # Instalar AnyDesk en modo silencioso
-          Start-Process $installerPath -ArgumentList "--install", "`"C:\Program Files (x86)\AnyDesk`"", "--start-with-win", "--silent" -Wait
-          
-          # Configurar una contraseña para AnyDesk
-          $anydeskPassword = "YourSecurePassword123!" # Cambia esto por una contraseña segura
-          & "C:\Program Files (x86)\AnyDesk\AnyDesk.exe" --set-password=$anydeskPassword
-          
-          # Limpiar el instalador descargado
-          Remove-Item $installerPath -Force
-          Write-Host "AnyDesk has been installed and configured."
-          
-      # Paso 6: Verificar la accesibilidad de RDP
+
       - name: Verify RDP Accessibility
         run: |
           Write-Host "Tailscale IP: $env:TAILSCALE_IP"
+          # Test connectivity using Test-NetConnection against the Tailscale IP on port 3389
           $testResult = Test-NetConnection -ComputerName $env:TAILSCALE_IP -Port 3389
           if (-not $testResult.TcpTestSucceeded) {
             Write-Error "TCP connection to RDP port 3389 failed"
             exit 1
           }
           Write-Host "TCP connectivity successful!"
-      # Paso 7: Mantener la conexión activa
+
       - name: Maintain Connection
         run: |
           Write-Host "`n=== RDP ACCESS==="
           Write-Host "Address: $env:TAILSCALE_IP"
           Write-Host "Username: RDP"
           Write-Host "Password: $(echo $env:RDP_CREDS)"
-          Write-Host "n8n is available at http://localhost:5678"
-          Write-Host "AnyDesk is installed and configured with the password: YourSecurePassword123!"
           Write-Host "==================`n"
+          # Keep runner active indefinitely (or until manually cancelled)
           while ($true) {
             Write-Host "[$(Get-Date)] RDP Active - Use Ctrl+C in workflow to terminate"
             Start-Sleep -Seconds 300
