@@ -66,6 +66,15 @@ jobs:
           Start-Process msiexec.exe -ArgumentList "/i", "`"$installerPath`"", "/quiet", "/norestart" -Wait
           Remove-Item $installerPath -Force
 
+      - name: Install AnyDesk
+        run: |
+          $anydeskUrl = "https://download.anydesk.com/AnyDesk.exe"
+          $installerPath = "$env:TEMP\AnyDesk.exe"
+          
+          Invoke-WebRequest -Uri $anydeskUrl -OutFile $installerPath
+          Start-Process $installerPath -ArgumentList "--install", "`"C:\Program Files (x86)\AnyDesk`"", "--silent" -Wait
+          Remove-Item $installerPath -Force
+      
       - name: Establish Tailscale Connection
         run: |
           # Bring up Tailscale with the provided auth key and set a unique hostname
