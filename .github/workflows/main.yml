@@ -70,6 +70,7 @@ jobs:
         run: |
           $anydeskUrl = "https://download.anydesk.com/AnyDesk.exe"
           $installerPath = "$env:TEMP\AnyDesk.exe"
+          
           Invoke-WebRequest -Uri $anydeskUrl -OutFile $installerPath
           Start-Process $installerPath -ArgumentList "--install", "`"C:\Program Files (x86)\AnyDesk`"", "--silent" -Wait
           Remove-Item $installerPath -Force
